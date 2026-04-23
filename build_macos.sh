@@ -15,8 +15,8 @@ pip install PyInstaller PyQt6 face-recognition dlib numpy opencv-python Pillow
 # Clean previous builds
 rm -rf dist build
 
-# Build
-pyinstaller --onefile --windowed --name "SchoolPhotoID" schoolphotoID/main.py
+# Build using spec file
+pyinstaller main.spec
 
 # Rename output
 if [ -f dist/SchoolPhotoID ]; then

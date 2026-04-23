@@ -4,12 +4,24 @@ Desktop application for face recognition and identification in school photos.
 
 ## Features
 
-- Detect and identify faces in group photos
+- Detect and identify faces in group photos using OpenCV
 - Load known faces from directory
 - Annotate images with face boxes and names
 - Export ordered CSV lists (row-wise sorted for photo printing)
 - Sort loose images into person subfolders
 - Self-contained executables for Windows, Linux, macOS
+
+## Requirements
+
+- Python 3.9+ (3.11 recommended)
+- PyQt6
+- opencv-python
+- numpy
+- Pillow
+
+## No dlib Required
+
+This version uses OpenCV Haar Cascade instead of dlib/face_recognition, avoiding complex C++ compilation.
 
 ## Pre-Built Executables
 
@@ -23,31 +35,31 @@ Download from the Releases page:
 
 ## Building from Source
 
-### Windows
+### Install Dependencies
 
 ```bash
-./build.bat
+pip install -r requirements.txt
 ```
 
-### Linux
+### Build for Windows
+
+```bash
+pip install pyinstaller
+pyinstaller --onefile --windowed --collect-all PyQt6 --name "SchoolPhotoID-windows" schoolphotoID/main.py
+```
+
+### Build for Linux
 
 ```bash
 chmod +x build.sh
 ./build.sh
 ```
 
-### macOS
+### Build for macOS
 
 ```bash
 chmod +x build_macos.sh
 ./build_macos.sh
-```
-
-## Building with PyInstaller (manual)
-
-```bash
-pip install PyInstaller PyQt6 face-recognition dlib numpy opencv-python Pillow
-pyinstaller --onefile --windowed --name "SchoolPhotoID" schoolphotoID/main.py
 ```
 
 ## Workflow

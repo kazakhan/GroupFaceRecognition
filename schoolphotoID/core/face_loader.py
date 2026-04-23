@@ -1,4 +1,4 @@
-"""Load known faces from directory."""
+"""Load known faces from directory using dlib with local models."""
 
 import os
 import warnings
@@ -6,13 +6,9 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 import numpy as np
 
-warnings.filterwarnings('ignore', category=UserWarning, module='face_recognition_models')
-warnings.filterwarnings('ignore', category=DeprecationWarning)
+import dlib
 
-try:
-    import face_recognition
-except ImportError:
-    face_recognition = None
+warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 
 class KnownFaceDatabase:
@@ -23,6 +19,14 @@ class KnownFaceDatabase:
         self.names: List[str] = []
         self.image_paths: List[str] = []
         self._loaded = False
+        self._face_detector = None
+        self._shape_predictor = None
+        self._face_encoder = None
+
+    @property
+    def known_images(self) -> List[np.ndarray]:
+        """Compatibility property - returns images list (empty for dlib)."""
+        return []
 
     def clear(self):
         """Clear all encodings."""
@@ -39,32 +43,47 @@ class KnownFaceDatabase:
         """Return number of known faces."""
         return len(self.names)
 
+    def _init_models(self, models_dir: str):
+        """Initialize dlib models from local files."""
+        models_path = Path(models_dir)
+        shape_model = models_path / "shape_predictor_68_face_landmarks.dat"
+        encoder_model = models_path / "dlib_face_recognition_resnet_model_v1.dat"
+
+        if not shape_model.exists():
+            raise FileNotFoundError(f"Shape model not found: {shape_model}")
+        if not encoder_model.exists():
+            raise FileNotFoundError(f"Encoder model not found: {encoder_model}")
+
+        self._face_detector = dlib.get_frontal_face_detector()
+        self._shape_predictor = dlib.shape_predictor(str(shape_model))
+        self._face_encoder = dlib.face_recognition_model_v1(str(encoder_model))
+
 
 def load_known_faces(
     faces_dir: str,
+    models_dir: str,
     progress_callback: Optional[callable] = None,
 ) -> Tuple[KnownFaceDatabase, List[str]]:
     """
-    Load known faces from subdirectories.
+    Load known faces from subdirectories using dlib with local models.
 
     Each subdirectory represents a person, named as "First Last".
     Inside each subdirectory should be a photo of that person.
 
     Args:
         faces_dir: Path to directory containing person subdirectories
+        models_dir: Path to directory containing dlib model files
         progress_callback: Optional callback(percent, message) for progress
 
     Returns:
         Tuple of (KnownFaceDatabase, list of person names)
     """
-    if face_recognition is None:
-        raise ImportError("face_recognition library not available")
-
     faces_path = Path(faces_dir)
     if not faces_path.exists():
         raise FileNotFoundError(f"Faces directory not found: {faces_dir}")
 
     db = KnownFaceDatabase()
+    db._init_models(models_dir)
     person_names = []
 
     subdirs = [d for d in faces_path.iterdir() if d.is_dir()]
@@ -90,11 +109,14 @@ def load_known_faces(
         image_file = jpg_files[0]
 
         try:
-            image = face_recognition.load_image_file(str(image_file))
-            encodings = face_recognition.face_encodings(image)
+            image = dlib.load_rgb_image(str(image_file))
+            faces = db._face_detector(image)
 
-            if encodings:
-                db.encodings.append(encodings[0])
+            if faces:
+                shape = db._shape_predictor(image, faces[0])
+                encoding = np.array(db._face_encoder.compute_face_descriptor(image, shape))
+
+                db.encodings.append(encoding)
                 db.names.append(person_name)
                 db.image_paths.append(str(image_file))
                 person_names.append(person_name)

@@ -1,0 +1,135 @@
+name: Build Executables
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyInstaller PyQt6 face-recognition dlib-bin numpy opencv-python Pillow
+
+      - name: Build with PyInstaller
+        run: pyinstaller main.spec
+
+      - name: Rename artifact
+        run: |
+          mv dist/SchoolPhotoID.exe dist/SchoolPhotoID-windows.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SchoolPhotoID-windows
+          path: dist/SchoolPhotoID-windows.exe
+          retention-days: 30
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev cmake libgtk-3-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyInstaller PyQt6 face-recognition dlib numpy opencv-python Pillow
+
+      - name: Build with PyInstaller
+        run: pyinstaller main.spec
+
+      - name: Make executable and rename
+        run: |
+          mv dist/SchoolPhotoID dist/SchoolPhotoID-linux
+          chmod +x dist/SchoolPhotoID-linux
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SchoolPhotoID-linux
+          path: dist/SchoolPhotoID-linux
+          retention-days: 30
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          brew install cmake
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyInstaller PyQt6 face-recognition dlib numpy opencv-python Pillow
+
+      - name: Build with PyInstaller
+        run: pyinstaller main.spec
+
+      - name: Make executable and rename
+        run: |
+          mv dist/SchoolPhotoID dist/SchoolPhotoID-macos
+          chmod +x dist/SchoolPhotoID-macos
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SchoolPhotoID-macos
+          path: dist/SchoolPhotoID-macos
+          retention-days: 30
+
+  release:
+    needs: [build-windows, build-linux, build-macos]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/SchoolPhotoID-windows/SchoolPhotoID-windows.exe
+            artifacts/SchoolPhotoID-linux/SchoolPhotoID-linux
+            artifacts/SchoolPhotoID-macos/SchoolPhotoID-macos
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

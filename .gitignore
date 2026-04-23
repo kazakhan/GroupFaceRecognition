@@ -25,9 +25,6 @@ Thumbs.db
 # Logs
 *.log
 
-# GitHub Actions
-.github/workflows/*.yml
-
 # Temporary files
 *.tmp
 *.bak

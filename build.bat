@@ -11,8 +11,8 @@ REM Clean previous builds
 if exist dist rmdir /s /q dist
 if exist build rmdir /s /q build
 
-REM Build
-pyinstaller --onefile --windowed --name "SchoolPhotoID" schoolphotoID/main.py
+REM Build with PyInstaller - collect-all for PyQt6
+pyinstaller --onefile --windowed --collect-all PyQt6 --name "SchoolPhotoID" schoolphotoID/main.py
 
 REM Rename output
 if exist dist\SchoolPhotoID.exe (
