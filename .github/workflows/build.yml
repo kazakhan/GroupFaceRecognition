@@ -76,7 +76,7 @@ jobs:
           retention-days: 30
 
   release:
-    needs: [build-windows, build-linux, build-macos]
+    needs: [build-windows, build-macos]
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
 
